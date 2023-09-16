@@ -39,10 +39,58 @@ uint32_t alu_adc(uint32_t src, uint32_t dest, size_t data_size)
 #ifdef NEMU_REF_ALU
 	return __ref_alu_adc(src, dest, data_size);
 #else
-	printf("\e[0;31mPlease implement me at alu.c\e[0m\n");
-	fflush(stdout);
-	assert(0);
-	return 0;
+	// printf("\e[0;31mPlease implement me at alu.c\e[0m\n");
+	// fflush(stdout);
+	// assert(0);
+	// return 0;
+	
+	// todo:  OF 不一樣!!!!
+
+	// int CF_1 = 0;
+	// int OF_1 = 0;
+	// if (cpu.eflags.CF) {
+	// 	src &= (0xFFFFFFFF >> (32 - data_size));
+	// 	if (src >= (0xFFFFFFFF >> (32 - data_size))) {
+	// 		CF_1 = 1;
+	// 		OF_1 = 1;
+	// 	} else if (src == (0xFFFFFFFF >> (32 - data_size + 1))) {
+	// 		OF_1 = 1;
+	// 	}
+	// 	src++;
+	// 	src &= (0xFFFFFFFF >> (32 - data_size));
+	// }
+	// uint32_t res = alu_add(src, dest, data_size);
+	// if (CF_1) {
+	// 	cpu.eflags.CF = 1;
+	// 	cpu.eflags.OF = 1;
+	// } else if (OF_1) {
+	// 	cpu.eflags.OF = 1;
+	// }
+	
+	// return res;
+int CF_1 = 0;
+	int OF_1 = 0;
+	if (src == (0xFFFFFFFF >> (32 - data_size + 1))) {
+		// todo: deal with it!!!
+	}
+	if (cpu.eflags.CF) {
+		src &= (0xFFFFFFFF >> (32 - data_size));
+		if (src >= (0xFFFFFFFF >> (32 - data_size))) {
+			CF_1 = 1;
+		}
+		src++;
+		src &= (0xFFFFFFFF >> (32 - data_size));
+	}
+	uint32_t res = alu_add(src, dest, data_size);
+	if (CF_1) {
+		cpu.eflags.CF = 1;
+		cpu.eflags.OF = 1;
+	} else if (OF_1) {
+		cpu.eflags.OF = 1;
+	}
+	
+	return res;
+
 #endif
 }
 
