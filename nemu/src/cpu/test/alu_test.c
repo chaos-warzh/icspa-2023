@@ -42,6 +42,10 @@ typedef union {
 		: "a" (a), "c" (b)); \
 	test_eflags.val = res_eflags; \
 	res_asm = res_asm & (0xFFFFFFFF >> (32 - dataSize)); \
+	if (cpu.eflags.OF != test_eflags.OF) { \
+	printf("Warning!! your_OF=%d, Truth=%d\n\n\n", cpu.eflags.OF, test_eflags.OF); \
+	printf("src=%d, dest=%d, datasize=%d\n\n\\n", a, b, data_size);\
+	}\
 	fflush(stdout); \
 	assert(res == res_asm); \
 	assert(cpu.eflags.CF == test_eflags.CF); \
