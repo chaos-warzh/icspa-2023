@@ -1,7 +1,5 @@
 #include "cpu/cpu.h"
 
-#define ext_32(num, data_size) (num & (0xFFFFFFFF >> (32 - data_size)))
-
 void set_CF_add(uint32_t result, uint32_t src, size_t data_size) {
 	result = sign_ext(result & (0xFFFFFFFF >> (32 - data_size)), data_size);
 	src = sign_ext(src & (0xFFFFFFFF >> (32 - data_size)), data_size);
@@ -52,35 +50,60 @@ void set_OF_add(uint32_t result, uint32_t src, uint32_t dest, size_t data_size) 
 }
 
 
-uint32_t alu_add(uint32_t src, uint32_t dest, size_t data_size)
-{
+uint32_t alu_add(uint32_t src, uint32_t dest, size_t data_size) {
 #ifdef NEMU_REF_ALU
 	return __ref_alu_add(src, dest, data_size);
 #else
+    // 00 00 00 00 + 00 FF FF FF 
     uint32_t res = 0;
 	res = dest + src;                  // 获取计算结果
 
 	set_CF_add(res, src, data_size);   // 设置标志位
 	set_PF(res);
+	// set_AF();                       // 不模拟AF
 	set_ZF(res, data_size);
 	set_SF(res, data_size);
 	set_OF_add(res, src, dest, data_size);
 
 	return res & (0xFFFFFFFF >> (32 - data_size)); // 高位清零并返回
+	
+
 #endif
 }
 
-uint32_t alu_adc(uint32_t src, uint32_t dest, size_t data_size)
-{
+void set_CF_adc(uint32_t src, uint32_t dest, size_t data_size) {
+    int rec = 0;
+	uint32_t sum = src + dest;
+	
+	sum = sign_ext(sum & (0xFFFFFFFF >> (32 - data_size)), data_size);
+	src = sign_ext(src & (0xFFFFFFFF >> (32 - data_size)), data_size);
+
+	if (sum < src) {
+		rec = 1;
+	}
+	sum += cpu.eflags.CF;
+	sum = sign_ext(sum & (0xFFFFFFFF >> (32 - data_size)), data_size);
+	if (sum < cpu.eflags.CF) {
+		rec = 1;
+	}
+	cpu.eflags.CF = rec;
+}
+
+uint32_t alu_adc(uint32_t src, uint32_t dest, size_t data_size) {
 #ifdef NEMU_REF_ALU
 	return __ref_alu_adc(src, dest, data_size);
 #else
-	if (cpu.eflags.CF == 0) {
-		return alu_add(src, dest, data_size);
-	} else {
-		return alu_add(1, alu_add(src, dest, data_size), data_size);
-	}
+    uint32_t res = 0;
+	res = dest + src + cpu.eflags.CF;
 
+	set_CF_adc(src, dest, data_size);
+	set_PF(res);
+	set_ZF(res, data_size);
+	set_SF(res, data_size);
+	set_OF_add(res, src, dest, data_size);
+
+	return res & (0xFFFFFFFF >> (32 - data_size));
+	
 #endif
 }
 
