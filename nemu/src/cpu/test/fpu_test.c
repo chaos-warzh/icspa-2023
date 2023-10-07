@@ -25,6 +25,7 @@ void fpu_test_add()
 			res_fpu.val = internal_float_add(b.val, a.val);
 			//printf("float add a = %f, b = %f, ua = %x, ub = %x, res = %x, res_fpu = %x, res = %f, res_fpu = %f\n", a.fval, b.fval, a.val, b.val, res.val, res_fpu.val, res.fval, res_fpu.fval);
 			fflush(stdout);
+			
 			assert(res_fpu.val == res.val);
 		}
 	}

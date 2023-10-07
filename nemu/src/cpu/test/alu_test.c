@@ -594,6 +594,9 @@ void alu_test_mul() {
 			temp_d = res_asm_d;
 			fflush(stdout);
 			assert(res == (temp_a | (temp_d << 32)));
+			if (cpu.eflags.CF != test_eflags.CF) {
+				printf("your: %d, truth: %d", cpu.eflags.CF, test_eflags.CF);
+			}
 			assert(cpu.eflags.CF == test_eflags.CF);
 			assert(cpu.eflags.OF == test_eflags.OF);
 		}

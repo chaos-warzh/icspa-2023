@@ -5,34 +5,45 @@ FPU fpu;
 // special values
 FLOAT p_zero, n_zero, p_inf, n_inf, p_nan, n_nan;
 
-// the last three bits of the significand are reserved for the GRS bits
-inline uint32_t internal_normalize(uint32_t sign, int32_t exp, uint64_t sig_grs)
-{
+// the last three bits of the significand are reserved for the G R S bits
+// exp 是一个带符号的阶码, 待规格化. (含偏置常数)
+// sig_grs 既包括最高隐藏位, 也包括grs位. 
+inline uint32_t internal_normalize(uint32_t sign, int32_t exp, uint64_t sig_grs) {
 
 	// normalization
 	bool overflow = false; // true if the result is INFINITY or 0 during normalize
 
-	if ((sig_grs >> (23 + 3)) > 1 || exp < 0)
-	{
+	if ((sig_grs >> (23 + 3)) > 1 || exp < 0) { // 10.0001 ,
 		// normalize toward right
 		while ((((sig_grs >> (23 + 3)) > 1) && exp < 0xff) // condition 1
 			   ||										   // or
 			   (sig_grs > 0x04 && exp < 0)				   // condition 2
-			   )
+				)
 		{
 
 			/* TODO: shift right, pay attention to sticky bit*/
-			printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
-			fflush(stdout);
-			assert(0);
+			// printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
+			// fflush(stdout);
+			// assert(0);
+
+
+			uint64_t stck = (sig_grs & 0x1);
+
+			sig_grs >>= 1;
+			sig_grs |= stck;
+			exp++;
 		}
 
 		if (exp >= 0xff)
 		{
 			/* TODO: assign the number to infinity */
-			printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
-			fflush(stdout);
-			assert(0);
+			// printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
+			// fflush(stdout);
+			// assert(0);
+
+			exp = 0xff;
+			sig_grs = 0;
+
 			overflow = true;
 		}
 		if (exp == 0)
@@ -40,16 +51,25 @@ inline uint32_t internal_normalize(uint32_t sign, int32_t exp, uint64_t sig_grs)
 			// we have a denormal here, the exponent is 0, but means 2^-126,
 			// as a result, the significand should shift right once more
 			/* TODO: shift right, pay attention to sticky bit*/
-			printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
-			fflush(stdout);
-			assert(0);
+			// printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
+			// fflush(stdout);
+			// assert(0);
+
+			uint64_t stck = (sig_grs & 0x1);
+
+			sig_grs >>= 1;
+			sig_grs |= stck;
 		}
 		if (exp < 0)
 		{
 			/* TODO: assign the number to zero */
-			printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
-			fflush(stdout);
-			assert(0);
+			// printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
+			// fflush(stdout);
+			// assert(0);
+
+			exp = 0;
+			sig_grs = 0;
+
 			overflow = true;
 		}
 	}
@@ -59,17 +79,25 @@ inline uint32_t internal_normalize(uint32_t sign, int32_t exp, uint64_t sig_grs)
 		while (((sig_grs >> (23 + 3)) == 0) && exp > 0)
 		{
 			/* TODO: shift left */
-			printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
-			fflush(stdout);
-			assert(0);
+			// printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
+			// fflush(stdout);
+			// assert(0);
+			sig_grs <<= 1;
+			exp--; 	
 		}
 		if (exp == 0)
 		{
 			// denormal
 			/* TODO: shift right, pay attention to sticky bit*/
-			printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
-			fflush(stdout);
-			assert(0);
+			// printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
+			// fflush(stdout);
+			// assert(0);
+
+			uint64_t stck = (sig_grs & 0x1);
+
+			sig_grs >>= 1;
+			sig_grs |= stck;
+			
 		}
 	}
 	else if (exp == 0 && sig_grs >> (23 + 3) == 1)
@@ -81,9 +109,34 @@ inline uint32_t internal_normalize(uint32_t sign, int32_t exp, uint64_t sig_grs)
 	if (!overflow)
 	{
 		/* TODO: round up and remove the GRS bits */
-		printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
-		fflush(stdout);
-		assert(0);
+		// printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
+		// fflush(stdout);
+		// assert(0);
+
+		// consider what to do here!
+		// sig_grs >>= 3;
+		if ((sig_grs & 0x7) < 0x4) {
+			sig_grs >>= 3;
+		} else if ((sig_grs & 0x7) > 0x4) {
+			sig_grs >>= 3;
+			sig_grs++;
+		} else {
+			sig_grs >>= 3;
+			if (sig_grs % 2 == 1) {
+				sig_grs++;
+			}
+		}
+
+		// // 处理此时的左溢问题
+		if (sig_grs >> 24) {
+			sig_grs >>= 1;
+			exp++;
+		}
+		if (exp >= 0xff) {
+			exp = 0xff;
+			sig_grs = 0;
+		}
+	
 	}
 
 	FLOAT f;
@@ -108,9 +161,7 @@ CORNER_CASE_RULE corner_add[] = {
 };
 
 // a + b
-uint32_t internal_float_add(uint32_t b, uint32_t a)
-{
-
+uint32_t internal_float_add(uint32_t b, uint32_t a) {
 	// corner cases
 	int i = 0;
 	for (; i < sizeof(corner_add) / sizeof(CORNER_CASE_RULE); i++)
@@ -149,7 +200,7 @@ uint32_t internal_float_add(uint32_t b, uint32_t a)
 	uint32_t sig_a, sig_b, sig_res;
 	sig_a = fa.fraction;
 	if (fa.exponent != 0)
-		sig_a |= 0x800000; // the implied 1
+		sig_a |= 0x800000; // 加上最高隐藏位
 	sig_b = fb.fraction;
 	if (fb.exponent != 0)
 		sig_b |= 0x800000; // the implied 1
@@ -158,17 +209,23 @@ uint32_t internal_float_add(uint32_t b, uint32_t a)
 	uint32_t shift = 0;
 
 	/* TODO: shift = ? */
-	printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
-	fflush(stdout);
-	assert(0);
-	assert(shift >= 0);
+	// printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
+	// fflush(stdout);
+	// assert(0);
+	// assert(shift >= 0);
+	shift = fb.exponent - fa.exponent;
+	if (fa.exponent == 0) {
+		shift--;
+	}
+	if (fb.exponent == 0) {
+		shift++;
+	}
 
 	sig_a = (sig_a << 3); // guard, round, sticky
 	sig_b = (sig_b << 3);
 
 	uint32_t sticky = 0;
-	while (shift > 0)
-	{
+	while (shift > 0) {
 		sticky = sticky | (sig_a & 0x1);
 		sig_a = sig_a >> 1;
 		sig_a |= sticky;
@@ -244,8 +301,7 @@ CORNER_CASE_RULE corner_mul[] = {
 };
 
 // a * b
-uint32_t internal_float_mul(uint32_t b, uint32_t a)
-{
+uint32_t internal_float_mul(uint32_t b, uint32_t a) {
 	int i = 0;
 	for (; i < sizeof(corner_mul) / sizeof(CORNER_CASE_RULE); i++)
 	{
@@ -287,9 +343,14 @@ uint32_t internal_float_mul(uint32_t b, uint32_t a)
 	uint32_t exp_res = 0;
 
 	/* TODO: exp_res = ? leave space for GRS bits. */
-	printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
-	fflush(stdout);
-	assert(0);
+	// printf("\e[0;31mPlease implement me at fpu.c\e[0m\n");
+	// fflush(stdout);
+	// assert(0);
+	//
+	// it seems that I have to complete all contents :(
+	// 考虑偏置常数
+	exp_res = fa.exponent + fb.exponent - 127 - 23 + 3;
+
 	return internal_normalize(f.sign, exp_res, sig_res);
 }
 
